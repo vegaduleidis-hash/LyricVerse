@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎵 Generador de Historias</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f1a;
+      color: #e0e0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .subtitulo {
+      color: #888;
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #a78bfa;
+      margin-bottom: 6px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #0f0f1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #e0e0f0;
+      font-size: 1rem;
+      margin-bottom: 18px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #a78bfa;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .checkbox-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: #a78bfa;
+      cursor: pointer;
+    }
+
+    .checkbox-row span {
+      font-size: 0.95rem;
+      color: #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(90deg, #7c3aed, #2563eb);
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #estado {
+      font-size: 0.9rem;
+      color: #a78bfa;
+      margin-top: 16px;
+      min-height: 22px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    #titulo-generado {
+      display: none;
+      background: #1a1a2e;
+      border: 1px solid #a78bfa44;
+      border-radius: 12px;
+      padding: 16px 22px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    #titulo-generado .label { font-size: 0.8rem; color: #888; margin-bottom: 4px; }
+    #titulo-generado .titulo { font-size: 1.3rem; font-weight: 800; color: #a78bfa; }
+
+    #historia-box {
+      display: none;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 24px;
+    }
+
+    #historia-texto {
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: #d0d0e8;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    #historia-texto::-webkit-scrollbar { width: 6px; }
+    #historia-texto::-webkit-scrollbar-thumb { background: #3a3a6a; border-radius: 4px; }
+
+    .btn-descargar {
+      margin-top: 16px;
+      background: linear-gradient(90deg, #059669, #0284c7);
+      font-size: 0.95rem;
+    }
+
+    #imagenes-box {
+      display: none;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 24px;
+    }
+
+    #imagenes-box h2 {
+      font-size: 1rem;
+      color: #a78bfa;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+
+    .imagenes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .img-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .img-card img {
+      width: 100%;
+      display: block;
+      min-height: 120px;
+      background: #0f0f1a;
+      object-fit: cover;
+    }
+
+    .img-card .img-label {
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      color: #888;
+      text-align: center;
+    }
+
+    .barra-progreso {
+      width: 100%;
+      height: 4px;
+      background: #2a2a4a;
+      border-radius: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .barra-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #2563eb);
+      border-radius: 4px;
+      transition: width 0.4s;
+      width: 0%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎵 Generador de Historias</h1>
+  <p class="subtitulo">Escribe el nombre de una canción y crea una historia única de 80 párrafos</p>
+
+  <div class="card">
+    <label>🎤 Nombre de la canción</label>
+    <input type="text" id="cancion" placeholder="Ej: Ojitos Lindos" />
+
+    <label>👤 Artista (opcional)</label>
+    <input type="text" id="artista" placeholder="Ej: Bad Bunny" />
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="imagenes" />
+      <span>🖼️ Incluir imágenes generadas por IA</span>
+    </div>
+
+    <button id="btn-generar" onclick="iniciarGeneracion()">✨ Generar Historia</button>
+    <div class="barra-progreso" id="barra">
+      <div class="barra-fill" id="barra-fill"></div>
+    </div>
+    <div id="estado"></div>
+  </div>
+
+  <div id="titulo-generado">
+    <div class="label">TÍTULO DE TU HISTORIA</div>
+    <div class="titulo" id="titulo-texto"></div>
+  </div>
+
+  <div id="historia-box">
+    <div id="historia-texto"></div>
+    <button class="btn-descargar" onclick="descargarHistoria()">⬇️ Descargar Historia (.txt)</button>
+  </div>
+
+  <div id="imagenes-box">
+    <h2>🖼️ Imágenes generadas</h2>
+    <div class="imagenes-grid" id="imagenes-grid"></div>
+  </div>
+
+  <script>
+    let historiaCompleta = "";
+    let tituloActual = "";
+    let bloqueActual = 0;
+
+    function iniciarGeneracion() {
+      const cancion = document.getElementById("cancion").value.trim();
+      const artista = document.getElementById("artista").value.trim();
+      const imagenes = document.getElementById("imagenes").checked;
+
+      if (!cancion) {
+        alert("Por favor escribe el nombre de una canción.");
+        return;
+      }
+
+      historiaCompleta = "";
+      tituloActual = "";
+      bloqueActual = 0;
+      document.getElementById("btn-generar").disabled = true;
+      document.getElementById("estado").textContent = "🚀 Iniciando...";
+      document.getElementById("titulo-generado").style.display = "none";
+      document.getElementById("historia-box").style.display = "none";
+      document.getElementById("historia-texto").textContent = "";
+      document.getElementById("imagenes-box").style.display = "none";
+      document.getElementById("imagenes-grid").innerHTML = "";
+      document.getElementById("barra").style.display = "block";
+      document.getElementById("barra-fill").style.width = "5%";
+
+      fetch("/generar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cancion, artista, imagenes })
+      }).then(res => {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        function leer() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              document.getElementById("btn-generar").disabled = false;
+              document.getElementById("barra-fill").style.width = "100%";
+              return;
+            }
+
+            const texto = decoder.decode(value);
+            const lineas = texto.split("\n");
+
+            for (const linea of lineas) {
+              if (!linea.startsWith("data: ")) continue;
+              try {
+                const data = JSON.parse(linea.slice(6));
+                procesarEvento(data);
+              } catch(e) {}
+            }
+
+            leer();
+          });
+        }
+        leer();
+      }).catch(err => {
+        document.getElementById("estado").textContent = "❌ Error de conexión.";
+        document.getElementById("btn-generar").disabled = false;
+      });
+    }
+
+    function procesarEvento(data) {
+      const { tipo, contenido } = data;
+
+      if (tipo === "estado") {
+        document.getElementById("estado").textContent = contenido;
+        if (contenido.includes("Bloque")) {
+          bloqueActual++;
+          const pct = 20 + (bloqueActual / 8) * 60;
+          document.getElementById("barra-fill").style.width = pct + "%";
+        } else if (contenido.includes("Análisis")) {
+          document.getElementById("barra-fill").style.width = "10%";
+        } else if (contenido.includes("título")) {
+          document.getElementById("barra-fill").style.width = "15%";
+        } else if (contenido.includes("imagen")) {
+          document.getElementById("barra-fill").style.width = "90%";
+        }
+      }
+
+      else if (tipo === "titulo") {
+        tituloActual = contenido;
+        document.getElementById("titulo-texto").textContent = contenido;
+        document.getElementById("titulo-generado").style.display = "block";
+      }
+
+      else if (tipo === "historia_inicio") {
+        historiaCompleta += contenido;
+        document.getElementById("historia-box").style.display = "block";
+        document.getElementById("historia-texto").textContent = historiaCompleta;
+      }
+
+      else if (tipo === "historia_bloque") {
+        historiaCompleta += contenido;
+        const box = document.getElementById("historia-texto");
+        box.textContent = historiaCompleta;
+        box.scrollTop = box.scrollHeight;
+      }
+
+      else if (tipo === "imagen") {
+        document.getElementById("imagenes-box").style.display = "block";
+        const grid = document.getElementById("imagenes-grid");
+        const card = document.createElement("div");
+        card.className = "img-card";
+        card.innerHTML = `
+          <img src="${contenido.url}" alt="${contenido.label}" loading="lazy"
+               onerror="this.style.display='none'" />
+          <div class="img-label">${contenido.label}</div>
+        `;
+        grid.appendChild(card);
+      }
+
+      else if (tipo === "fin") {
+        document.getElementById("estado").textContent = contenido;
+        document.getElementById("barra-fill").style.width = "100%";
+        document.getElementById("btn-generar").disabled = false;
+      }
+
+      else if (tipo === "error") {
+        document.getElementById("estado").textContent = "❌ " + contenido;
+        document.getElementById("btn-generar").disabled = false;
+      }
+    }
+
+    function descargarHistoria() {
+      const blob = new Blob([historiaCompleta], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `historia_${tituloActual.replace(/\s+/g, "_").slice(0, 40)}.txt`;
+      a.click();
+    }
+  </script>
+</body>
+</html>

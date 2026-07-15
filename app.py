@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify
 import requests
 import time
 import os
@@ -37,115 +37,61 @@ def analizar_cancion(cancion, artista):
 3. EL AMBIENTE: ¿Qué atmósfera crea?
 4. PERSONAJES: ¿Hay personajes mencionados?
 5. LUGARES: ¿Se mencionan lugares?
-6. SÍMBOLOS: ¿Hay símbolos importantes?
-Escribe un análisis claro y detallado."""
+6. SÍMBOLOS: ¿Hay símbolos importantes?"""
     return llamar_ia(prompt, temp=0.7)
 
 def limpiar_titulo(titulo):
     if not titulo:
         return "Historia Sin Título"
     primera_linea = titulo.strip().split("\n")[0].strip()
-    primera_linea = primera_linea.strip('"').strip("'").strip()
-    return primera_linea if primera_linea else "Historia Sin Título"
+    return primera_linea.strip('"').strip("'").strip() or "Historia Sin Título"
 
 def generar_titulo(cancion, artista, analisis):
-    prompt = f"""Basado en la canción "{cancion}" y este análisis:
-{analisis[:600]}
-Crea un TÍTULO ORIGINAL para una historia inspirada en esta canción.
-- Creativo y llamativo
+    prompt = f"""Basado en la canción "{cancion}" crea un TÍTULO ORIGINAL para una historia.
+- Creativo, máximo 8 palabras
 - NO puede ser el nombre de la canción
-- Máximo 8 palabras
-- Responde ÚNICAMENTE con el título, sin explicaciones"""
+- Responde ÚNICAMENTE con el título"""
     titulo = llamar_ia(prompt, temp=0.95, max_tokens=50)
-    if not titulo:
-        titulo = llamar_ia(f"Título poético de máximo 8 palabras inspirado en '{cancion}'. Solo el título.", temp=0.95, max_tokens=50)
     return limpiar_titulo(titulo)
 
 def generar_bloque(bloque, cancion, artista, analisis, titulo, historial):
     nombre_artista = artista if artista else "Artista desconocido"
     inicio = (bloque - 1) * 10 + 1
     fin = bloque * 10
-    if not historial:
-        contexto = "Esta es la PARTE INICIAL. Introduce personajes, conflicto y ambiente."
-    else:
-        contexto = "RESUMEN PREVIO:\n" + "\n".join(historial)
-    prompt = f"""Escribe la continuación de la historia "{titulo}", inspirada en "{cancion}" de {nombre_artista}.
-ANÁLISIS: {analisis[:800]}
+    contexto = "PARTE INICIAL. Introduce personajes, conflicto y ambiente." if not historial else "RESUMEN PREVIO:\n" + "\n".join(historial[-2:])
+    prompt = f"""Escribe parte {bloque} de 8 de la historia "{titulo}", inspirada en "{cancion}" de {nombre_artista}.
 {contexto}
-INSTRUCCIONES (parte {bloque} de 8):
-- Escribe EXACTAMENTE 10 PÁRRAFOS numerados (Párrafo {inicio} al Párrafo {fin})
-- Cada párrafo: 4 a 6 oraciones completas
-- Refleja la emoción de la canción
-- NO repitas lo anterior
-- Separa párrafos con línea en blanco
-Escribe SOLO los 10 párrafos:"""
+- Escribe EXACTAMENTE 10 PÁRRAFOS numerados (Párrafo {inicio} al {fin})
+- Cada párrafo: 4 oraciones mínimo
+- Separa con línea en blanco"""
     parte = llamar_ia(prompt, temp=0.85, max_tokens=3000)
-    if not parte or len(parte) < 200:
+    if not parte or len(parte) < 100:
         parte = llamar_ia(prompt, temp=0.75, max_tokens=3000)
-    if not parte:
-        parte = f"[Error generando bloque {bloque}]"
-    return parte
+    return parte or f"[Error bloque {bloque}]"
 
 def generar_imagen_url(prompt_texto):
-    prompt_limpio = prompt_texto[:400].replace("\n", " ").strip()
-    prompt_codificado = urllib.parse.quote(prompt_limpio)
+    prompt_codificado = urllib.parse.quote(prompt_texto[:300].replace("\n", " ").strip())
     return f"{POLLINATIONS_URL}{prompt_codificado}?width=768&height=512&nologo=true"
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/generar", methods=["POST"])
-def generar():
+@app.route("/analizar", methods=["POST"])
+def analizar():
     data = request.json
     cancion = data.get("cancion", "").strip()
     artista = data.get("artista", "").strip()
-    con_imagenes = data.get("imagenes", False)
     if not cancion:
-        return jsonify({"error": "Falta el nombre de la canción"}), 400
+        return jsonify({"error": "Falta canción"}), 400
+    analisis = analizar_cancion(cancion, artista)
+    if not analisis:
+        return jsonify({"error": "No se pudo analizar"}), 500
+    titulo = generar_titulo(cancion, artista, analisis)
+    return jsonify({"analisis": analisis, "titulo": titulo})
 
-    def stream():
-        def enviar(tipo, contenido):
-            yield f"data: {json.dumps({'tipo': tipo, 'contenido': contenido})}\n\n"
-
-        yield from enviar("estado", "🎤 Analizando la canción...")
-        analisis = analizar_cancion(cancion, artista)
-        if not analisis:
-            yield from enviar("error", "No se pudo analizar la canción.")
-            return
-        yield from enviar("estado", "✅ Análisis completado")
-
-        yield from enviar("estado", "🏷️ Creando título único...")
-        titulo = generar_titulo(cancion, artista, analisis)
-        yield from enviar("titulo", titulo)
-
-        yield from enviar("estado", "✍️ Generando historia (80 párrafos)...")
-        nombre_artista = artista if artista else "Artista desconocido"
-        encabezado = f"📖 {titulo.upper()}\n{'='*60}\n\n🎵 Inspirada en: {cancion} - {nombre_artista}\n{'='*60}\n\n"
-        yield from enviar("historia_inicio", encabezado)
-
-        historial = []
-        for bloque in range(1, 9):
-            inicio = (bloque - 1) * 10 + 1
-            fin = bloque * 10
-            yield from enviar("estado", f"📝 Bloque {bloque}/8 (párrafos {inicio}-{fin})...")
-            parte = generar_bloque(bloque, cancion, artista, analisis, titulo, historial)
-            yield from enviar("historia_bloque", parte + "\n\n")
-            historial.append(f"Bloque {bloque} ({inicio}-{fin}): {parte[:300]}...")
-            time.sleep(2)
-
-        if con_imagenes:
-            yield from enviar("estado", "🖼️ Generando imágenes...")
-            prompt_portada = f"Book cover art for '{titulo}', cinematic, artistic, emotional, {analisis[:120]}"
-            yield from enviar("imagen", {"tipo": "portada", "url": generar_imagen_url(prompt_portada), "label": "Portada"})
-            for i in range(1, 9):
-                prompt_img = f"Cinematic scene part {i} of 8 from story '{titulo}', {analisis[:100]}, dramatic"
-                yield from enviar("imagen", {"tipo": "bloque", "url": generar_imagen_url(prompt_img), "label": f"Parte {i}"})
-
-        yield from enviar("fin", "🎉 ¡Historia completada!")
-
-    return Response(stream(), mimetype="text/event-stream")
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+@app.route("/bloque", methods=["POST"])
+def bloque():
+    data = request.json
+    resultado = generar_bloque(
+        data["bloque"],
